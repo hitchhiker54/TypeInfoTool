@@ -18,7 +18,7 @@ namespace SWBF2Tool
         public IntPtr DefaultInstance { get; protected set; } = IntPtr.Zero;
         public int ClassId { get; protected set; } = 0;
         public IntPtr VTable { get; protected set; } = IntPtr.Zero;
-        public IntPtr GetType { get; protected set; } = IntPtr.Zero;
+        public IntPtr GetTypeFunction { get; protected set; } = IntPtr.Zero;
 
         // field offset + size logging for interfield padding
         private int lastFieldOffset = 0;
@@ -175,7 +175,7 @@ namespace SWBF2Tool
             Next = typeInfo.m_Next;
             DefaultInstance = typeInfo.m_DefaultInstance;
             ClassId = typeInfo.m_ClassId;
-            GetVtable(remoteProcess, peImageBuffer);
+            //GetVtable(remoteProcess, peImageBuffer);
         }
 
         private void GetVtable(RemoteProcess remoteProcess, PEImageBuffer peImageBuffer)
@@ -219,7 +219,7 @@ namespace SWBF2Tool
                 // look for pointer to the GetType we found
                 if (foundGetType)
                 {
-                    GetType = (IntPtr)possibleGetType;
+                    GetTypeFunction = (IntPtr)possibleGetType;
                     VTable = (IntPtr)peImageBuffer.FindPattern(start, peImageBuffer.AddressToSig(possibleGetType));
                 }
             }

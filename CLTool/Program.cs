@@ -146,9 +146,9 @@ namespace SWBF2Tool
                     classLines.Add("");
 
                     // idapython stuff
-                    if(classInfo.GetType != IntPtr.Zero)
+                    if(classInfo.GetTypeFunction != IntPtr.Zero)
                     {
-                        nameLines.Add($"    MakeName(0x{classInfo.GetType.ToString("X9")}, \"{classInfo.Name}_GetType\")");
+                        nameLines.Add($"    MakeName(0x{classInfo.GetTypeFunction.ToString("X9")}, \"{classInfo.Name}_GetType\")");
                     }
 
                     if (classInfo.VTable != IntPtr.Zero)

@@ -28,9 +28,26 @@ namespace SWBF2Tool
             Console.WriteLine("Processing...");
             var count = 1;
 
+            // buffers for the main .h files
             List<string> enumLines = new List<string>();
             List<string> structLines = new List<string>();
             List<string> classLines = new List<string>();
+
+            // buffer for the idapython script
+            List<string> nameLines = new List<string>
+            {
+                "from idautils import *",
+                "from idc import *",
+                "from idaapi import *",
+                "",
+                "def MakeNames():",
+                "    startEa = SegByBase(SegByName(\"HEADER\"))",
+                "    imageend = 0",
+                "",
+                "    for ea in Segments():",
+                "        imageend = SegEnd(ea)",
+                ""
+            };
 
             while (remoteProcess.IsValidImagePtr(next))
             {
@@ -100,7 +117,15 @@ namespace SWBF2Tool
                     classLines.Add($"#ifndef _{classInfo.Name}_");
                     classLines.Add($"#define _{classInfo.Name}_");
 
-                    classLines.Add($"class {classInfo.Name} : {classInfo.ParentClassName}");
+                    if ((classInfo.ParentClassName != classInfo.Name) && (classInfo.ParentClassName != ""))
+                    {
+                        classLines.Add($"class {classInfo.Name} : {classInfo.ParentClassName}");
+                    }
+                    else
+                    {
+                        classLines.Add($"class {classInfo.Name}");
+                    }
+                    
                     classLines.Add("{");
 
                     if (classInfo.FieldCount > 0)
@@ -119,6 +144,17 @@ namespace SWBF2Tool
                     classLines.Add($"#endif");
 
                     classLines.Add("");
+
+                    // idapython stuff
+                    if(classInfo.GetType != IntPtr.Zero)
+                    {
+                        nameLines.Add($"    MakeName(0x{classInfo.GetType.ToString("X9")}, \"{classInfo.Name}_GetType\")");
+                    }
+
+                    if (classInfo.VTable != IntPtr.Zero)
+                    {
+                        nameLines.Add($"    MakeName(0x{classInfo.VTable.ToString("X9")}, \"{classInfo.Name}_vtbl\")");
+                    }
                 }
 
                 next = typeInfo.Next;
@@ -129,6 +165,7 @@ namespace SWBF2Tool
             System.IO.File.WriteAllLines(@".\Enums.h", enumLines);
             System.IO.File.WriteAllLines(@".\Structs.h", structLines);
             System.IO.File.WriteAllLines(@".\Classes.h", classLines);
+            System.IO.File.WriteAllLines(@".\MakeNames.py", nameLines);
 
             Console.WriteLine($"Found {count} TypeInfo entries.");
 

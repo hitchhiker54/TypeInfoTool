@@ -120,7 +120,7 @@ namespace SWBF2Tool
             string tmp = "";
             string sig = "";
 
-            for (int i = 0; i <=48; i += 8)
+            for (int i = 0; i <= 64; i += 8)
             {
                 tmp = ((Address >> i) & 0x00000000000000FF).ToString("X2");
 

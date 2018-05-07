@@ -20,7 +20,7 @@ namespace SWBF2Tool
             EnumFieldInfo typeInfo = remoteProcess.Read<EnumFieldInfo>(address);
             EnumFieldInfoData typeInfoData = remoteProcess.Read<EnumFieldInfoData>(typeInfo.m_InfoData);
 
-            Name = remoteProcess.ReadString(typeInfoData.m_Name, 255);
+            Name = $"fb::{remoteProcess.ReadString(typeInfoData.m_Name, 255)}";
             ThisTypeInfo = address;
             Type = typeInfoData.GetEntryType();
             Flags = typeInfoData.m_Flags;

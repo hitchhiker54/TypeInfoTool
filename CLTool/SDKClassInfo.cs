@@ -34,7 +34,7 @@ namespace SWBF2Tool
             ClassInfo typeInfo = remoteProcess.Read<ClassInfo>(address);
             ClassInfoData typeInfoData = remoteProcess.Read<ClassInfoData>(typeInfo.m_InfoData);
 
-            Name = remoteProcess.ReadString(typeInfoData.m_Name, 255);
+            Name = $"fb::{remoteProcess.ReadString(typeInfoData.m_Name, 255)}";
             ThisTypeInfo = address;
             Type = typeInfoData.GetEntryType();
             Flags = typeInfoData.m_Flags;
@@ -43,10 +43,10 @@ namespace SWBF2Tool
             FieldCount = typeInfoData.m_FieldCount;
             ParentClass = typeInfoData.m_SuperClass;
             var superClassInfo = new SDKTypeInfo(ParentClass, remoteProcess);
-            ParentClassName = superClassInfo.Name;
+            ParentClassName = $"fb::{superClassInfo.Name}";
 
             // debug
-            if (Name == "PresenceMatchmakingServiceData")
+            if (Name == "fb::ClassInfoAsset")
             {
                 Name = Name;
             }
@@ -71,7 +71,7 @@ namespace SWBF2Tool
                     {
                         fieldEntry.fieldType = fieldTypeInfo.GetCppType(); //fieldTypeInfo.Name;
                     }
-                    
+
                     fieldEntry.fieldName = remoteProcess.ReadString(fieldInfoData.m_Name, 255);
                     fieldEntry.fieldOffset = fieldInfoData.m_FieldOffset;
                     fieldEntry.fieldSize = fieldTypeInfo.TotalSize;

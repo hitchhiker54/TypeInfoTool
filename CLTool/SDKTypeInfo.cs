@@ -81,22 +81,26 @@ namespace SWBF2Tool
                     break;
                 case "CString":
                     {
-                        if (Type == BasicTypesEnum.kTypeCode_Class)
-                        {
-                            name = "char*";
-                        }
-                        else
-                        {
-                            name = "char";
-                        }
-                            
+                        //if (Type == BasicTypesEnum.kTypeCode_Class)
+                        //{
+                        //    name = "char*";
+                        //}
+                        //else
+                        //{
+                        //    name = "char";
+                        //}
+                        name = "char*";
                     }
                     break;
                 default:
                     {
-                        if (Type == BasicTypesEnum.kTypeCode_Class)
+                        if ((Type == BasicTypesEnum.kTypeCode_Class) || (Type == BasicTypesEnum.kTypeCode_Array))
                         {
-                            name = $"class {name}*";
+                            name = $"fb::{name}*";
+                        }
+                        if ((Type == BasicTypesEnum.kTypeCode_ValueType) || (Type == BasicTypesEnum.kTypeCode_Enum))
+                        {
+                            name = $"fb::{name}";
                         }
                     }
                     break;
@@ -119,7 +123,8 @@ namespace SWBF2Tool
                     break;
                 case BasicTypesEnum.kTypeCode_ValueType:
                     //cppType = "struct";
-                    cppType = Name;
+                    //cppType = Name;
+                    cppType = $"fb::{FixTypeName(Name)}";
                     break;
                 case BasicTypesEnum.kTypeCode_Class:
                     {
@@ -130,9 +135,10 @@ namespace SWBF2Tool
                 case BasicTypesEnum.kTypeCode_Array:
                     {
                         //cppType = "Array";
-                        Name = Name.Substring(0, Name.Length - 6); FixTypeName(Name);
-                        //cppType = $"/* fb::Array<> */{Environment.NewLine}    {FixTypeName(Name)}**";
-                        cppType = $"Array<{FixTypeName(Name)}>";
+                        Name = Name.Substring(0, Name.Length - 6);
+                        //FixTypeName(Name);
+                        cppType = $"/* fb::Array<> */{Environment.NewLine}    {FixTypeName(Name)}*";
+                        //cppType = $"Array<{FixTypeName(Name)}>";
                     }
                     break;
                 case BasicTypesEnum.kTypeCode_FixedArray:
@@ -146,7 +152,8 @@ namespace SWBF2Tool
                     break;
                 case BasicTypesEnum.kTypeCode_Enum:
                     //cppType = "enum";
-                    cppType = Name;
+                    //cppType = Name;
+                    cppType = $"{FixTypeName(Name)}";
                     break;
                 case BasicTypesEnum.kTypeCode_FileRef:
                     cppType = "FileRef";

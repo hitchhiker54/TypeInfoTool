@@ -7,20 +7,20 @@ using System.Threading.Tasks;
 
 namespace SWBF2Tool
 {
-    [StructLayout(LayoutKind.Sequential, Size = 0x0010, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x0010)]
     public class TestList
     {
         public IntPtr m_Head; //0x0000
         public IntPtr m_Tail; //0x0008
     }//Size=0x0010
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x0002, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x0002)]
     public struct MemberInfoFlags
     {
         public UInt16 m_FlagBits; //0x0000 
     };//Size=0x0002
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x0018, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x0018)]
     public class ModuleInfo
     {
         public IntPtr m_ModuleName; //0x0000 char*
@@ -28,7 +28,7 @@ namespace SWBF2Tool
         public IntPtr m_TestList; //0x0010 TestList*
     };//Size=0x0018
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x000A, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x000A)]
     public class MemberInfoData
     {
         public IntPtr m_Name; //0x0000 char*
@@ -41,13 +41,13 @@ namespace SWBF2Tool
         }
     };//Size=0x000A
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x0008, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x0008)]
     public class MemberInfo
     {
         public IntPtr m_InfoData; //0x0000 MemberInfoData*
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x001E, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x001E)]
     public class TypeInfoData : MemberInfoData
     {
         public UInt16 m_TotalSize; //0x000A 
@@ -61,7 +61,7 @@ namespace SWBF2Tool
         private UInt32 pad_0x0024;
     };//Size=0x0028
 
-    [StructLayout(LayoutKind.Sequential, Size=0x000E, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size=0x000E)]
     public class TypeInfo : MemberInfo
     {
         public IntPtr m_Next; //0x0008 TypeInfo*
@@ -70,7 +70,7 @@ namespace SWBF2Tool
         private UInt32 pad_0x0014;
     }//Size=0x0018
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x000E, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x000E)]
     public class FieldInfoData : MemberInfoData
     {
         public UInt16 m_FieldOffset; //0x000A
@@ -79,7 +79,7 @@ namespace SWBF2Tool
 
     };//Size=0x0018
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x0008, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x0008)]
     public class FieldInfo : MemberInfo
     {
         public IntPtr m_DeclaringType; //0x0010 TypeInfo*
@@ -108,7 +108,7 @@ namespace SWBF2Tool
         public IntPtr m_Fields; //0x0030 FieldInfoData*
     };//Size=0x0038
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x0038, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x0038)]
     public class ClassInfo : TypeInfo
     {
         private UInt64 pad_0018;
@@ -123,31 +123,31 @@ namespace SWBF2Tool
         private UInt32 pad_0x004C;
     };//Size=0x0050
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x0008, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x0008)]
     public class ArrayTypeInfoData : TypeInfoData
     {
         public IntPtr m_ElementType; //0x0028 TypeInfo*
     };//Size=0x0030
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x0000, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x0000)]
     public class ArrayTypeInfo : TypeInfo
     {
 
     };//Size=0x0018
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x0008, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x0008)]
     public class EnumFieldInfoData : TypeInfoData
     {
         public IntPtr m_Fields; //0x0028   FieldInfoData*   
     };//Size=0x0030
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x0000, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x0000)]
     public class EnumFieldInfo : TypeInfo
     {
 
     };//Size=0x0018
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x0030, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x0030)]
     public class ValueTypeInfoData : TypeInfoData
     {
         //char pad_0028[40]; //0x0028
@@ -160,7 +160,7 @@ namespace SWBF2Tool
 
     };//Size=0x0058
 
-    [StructLayout(LayoutKind.Sequential, Size = 0x0000, Pack = 0)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x0000)]
     public class ValueTypeInfo : TypeInfo
     {
 

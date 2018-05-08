@@ -24,7 +24,7 @@ namespace SWBF2Tool
             ValueTypeInfo typeInfo = remoteProcess.Read<ValueTypeInfo>(address);
             ValueTypeInfoData typeInfoData = remoteProcess.Read<ValueTypeInfoData>(typeInfo.m_InfoData);
 
-            Name = remoteProcess.ReadString(typeInfoData.m_Name, 255);
+            Name = $"fb::{remoteProcess.ReadString(typeInfoData.m_Name, 255)}";
             ThisTypeInfo = address;
             Type = typeInfoData.GetEntryType();
             Flags = typeInfoData.m_Flags;

@@ -18,7 +18,7 @@ namespace SWBF2Tool
         public IntPtr DefaultInstance { get; protected set; } = IntPtr.Zero;
         public int ClassId { get; protected set; } = 0;
         public IntPtr VTable { get; protected set; } = IntPtr.Zero;
-        public IntPtr GetType { get; protected set; } = IntPtr.Zero;
+        public IntPtr GetTypeFunction { get; protected set; } = IntPtr.Zero;
 
         // field offset + size logging for interfield padding
         private int lastFieldOffset = 0;
@@ -34,7 +34,7 @@ namespace SWBF2Tool
             ClassInfo typeInfo = remoteProcess.Read<ClassInfo>(address);
             ClassInfoData typeInfoData = remoteProcess.Read<ClassInfoData>(typeInfo.m_InfoData);
 
-            Name = remoteProcess.ReadString(typeInfoData.m_Name, 255);
+            Name = $"fb::{remoteProcess.ReadString(typeInfoData.m_Name, 255)}";
             ThisTypeInfo = address;
             Type = typeInfoData.GetEntryType();
             Flags = typeInfoData.m_Flags;
@@ -43,17 +43,51 @@ namespace SWBF2Tool
             FieldCount = typeInfoData.m_FieldCount;
             ParentClass = typeInfoData.m_SuperClass;
             var superClassInfo = new SDKTypeInfo(ParentClass, remoteProcess);
-            ParentClassName = superClassInfo.Name;
+            ParentClassName = $"fb::{superClassInfo.Name}";
 
             // debug
-            if (Name == "PresenceMatchmakingServiceData")
+            if (Name == "fb::IglooSubsystem")
             {
                 Name = Name;
             }
             // end debug
 
             // fill fields list
-            if (FieldCount > 0)
+            if (FieldCount == 0)
+            {
+                if ((ParentClass != IntPtr.Zero) && (TotalSize > superClassInfo.TotalSize))
+                {
+                    SDKFieldEntry fieldEntry;
+
+                    fieldEntry.fieldType = "char";
+                    fieldEntry.fieldName = $"_0x{superClassInfo.TotalSize.ToString("X4")}[{TotalSize - superClassInfo.TotalSize}]";
+                    fieldEntry.fieldOffset = superClassInfo.TotalSize;
+                    fieldEntry.fieldSize = TotalSize - superClassInfo.TotalSize;
+                    fieldEntry.lastFieldOffset = 0;
+                    fieldEntry.lastFieldSize = 0;
+
+                    Fields.Add(fieldEntry);
+
+                    FieldCount++;
+                } 
+                else if ((ParentClass == IntPtr.Zero) || (Name == ParentClassName))
+                {
+                    // reference oddity for (Name == ParentClassName) fb::IglooSubsystem : has itself as parent, 0 fields
+                    SDKFieldEntry fieldEntry;
+
+                    fieldEntry.fieldType = "char";
+                    fieldEntry.fieldName = $"_0x000[{TotalSize}]";
+                    fieldEntry.fieldOffset = 0;
+                    fieldEntry.fieldSize = TotalSize;
+                    fieldEntry.lastFieldOffset = 0;
+                    fieldEntry.lastFieldSize = 0;
+
+                    Fields.Add(fieldEntry);
+
+                    FieldCount++;
+                }
+            }
+            else //if (FieldCount > 0)
             {
                 for (int i = 0; i < FieldCount; i++)
                 {
@@ -71,7 +105,7 @@ namespace SWBF2Tool
                     {
                         fieldEntry.fieldType = fieldTypeInfo.GetCppType(); //fieldTypeInfo.Name;
                     }
-                    
+
                     fieldEntry.fieldName = remoteProcess.ReadString(fieldInfoData.m_Name, 255);
                     fieldEntry.fieldOffset = fieldInfoData.m_FieldOffset;
                     fieldEntry.fieldSize = fieldTypeInfo.TotalSize;
@@ -175,7 +209,7 @@ namespace SWBF2Tool
             Next = typeInfo.m_Next;
             DefaultInstance = typeInfo.m_DefaultInstance;
             ClassId = typeInfo.m_ClassId;
-            GetVtable(remoteProcess, peImageBuffer);
+            //GetVtable(remoteProcess, peImageBuffer);
         }
 
         private void GetVtable(RemoteProcess remoteProcess, PEImageBuffer peImageBuffer)
@@ -219,7 +253,7 @@ namespace SWBF2Tool
                 // look for pointer to the GetType we found
                 if (foundGetType)
                 {
-                    GetType = (IntPtr)possibleGetType;
+                    GetTypeFunction = (IntPtr)possibleGetType;
                     VTable = (IntPtr)peImageBuffer.FindPattern(start, peImageBuffer.AddressToSig(possibleGetType));
                 }
             }

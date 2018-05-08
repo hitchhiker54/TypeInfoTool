@@ -57,6 +57,11 @@ namespace SWBF2Tool
                     // some functions apparently defined, skip for now investigate later
                     type = BasicTypesEnum.kTypeCode_Void;
                 }
+                if (typeInfo.Name.Contains("Float32"))
+                {
+                    // uneeded class
+                    type = BasicTypesEnum.kTypeCode_Void;
+                }
 
                 switch (type)
                 {

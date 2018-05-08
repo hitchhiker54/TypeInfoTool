@@ -46,14 +46,48 @@ namespace SWBF2Tool
             ParentClassName = $"fb::{superClassInfo.Name}";
 
             // debug
-            if (Name == "fb::ClassInfoAsset")
+            if (Name == "fb::IglooSubsystem")
             {
                 Name = Name;
             }
             // end debug
 
             // fill fields list
-            if (FieldCount > 0)
+            if (FieldCount == 0)
+            {
+                if ((ParentClass != IntPtr.Zero) && (TotalSize > superClassInfo.TotalSize))
+                {
+                    SDKFieldEntry fieldEntry;
+
+                    fieldEntry.fieldType = "char";
+                    fieldEntry.fieldName = $"_0x{superClassInfo.TotalSize.ToString("X4")}[{TotalSize - superClassInfo.TotalSize}]";
+                    fieldEntry.fieldOffset = superClassInfo.TotalSize;
+                    fieldEntry.fieldSize = TotalSize - superClassInfo.TotalSize;
+                    fieldEntry.lastFieldOffset = 0;
+                    fieldEntry.lastFieldSize = 0;
+
+                    Fields.Add(fieldEntry);
+
+                    FieldCount++;
+                } 
+                else if ((ParentClass == IntPtr.Zero) || (Name == ParentClassName))
+                {
+                    // reference oddity for (Name == ParentClassName) fb::IglooSubsystem : has itself as parent, 0 fields
+                    SDKFieldEntry fieldEntry;
+
+                    fieldEntry.fieldType = "char";
+                    fieldEntry.fieldName = $"_0x000[{TotalSize}]";
+                    fieldEntry.fieldOffset = 0;
+                    fieldEntry.fieldSize = TotalSize;
+                    fieldEntry.lastFieldOffset = 0;
+                    fieldEntry.lastFieldSize = 0;
+
+                    Fields.Add(fieldEntry);
+
+                    FieldCount++;
+                }
+            }
+            else //if (FieldCount > 0)
             {
                 for (int i = 0; i < FieldCount; i++)
                 {

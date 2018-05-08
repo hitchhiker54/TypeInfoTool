@@ -1,5 +1,7 @@
 # TypeInfoTool
 
+WIP
+
 Basic rewrite of Reunion's code, specifically for SWBF 2 (2017).
 
 Does not currently sort classes by dependency, does not produce declarations.h

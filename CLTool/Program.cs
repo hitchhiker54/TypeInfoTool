@@ -8,24 +8,83 @@ namespace SWBF2Tool
 {
     class Program
     {
-        private static RemoteProcess remoteProcess = new RemoteProcess("starwarsbattlefrontii");
-        private static List<SDKEnumFieldInfo> enumList = new List<SDKEnumFieldInfo>();
-        private static List<SDKValueTypeInfo> structList = new List<SDKValueTypeInfo>();
-        private static List<SDKClassInfo> classList = new List<SDKClassInfo>();
-
-        private static void ProcessEnumType(IntPtr next)
+        private static string FixTypeName(string name)
         {
-            enumList.Add(new SDKEnumFieldInfo(next, remoteProcess));
-        }
+            switch (name)
+            {
+                case "Int8":
+                    name = "int8_t";
+                    break;
+                case "Uint8":
+                    name = "uint8_t";
+                    break;
+                case "Int16":
+                    name = "int16_t";
+                    break;
+                case "Uint16":
+                    name = "uint16_t";
+                    break;
+                case "Int32":
+                    name = "int32_t";
+                    break;
+                case "Uint32":
+                    name = "uint32_t";
+                    break;
+                case "Int64":
+                    name = "int64_t";
+                    break;
+                case "Uint64":
+                    name = "uint64_t";
+                    break;
+                case "Float32":
+                    name = "float";
+                    break;
+                case "Float64":
+                    name = "double";
+                    break;
+                case "Boolean":
+                    name = "int16_t";
+                    break;
+                case "CString":
+                    {
+                        //if (Type == BasicTypesEnum.kTypeCode_Class)
+                        //{
+                        //    name = "char*";
+                        //}
+                        //else
+                        //{
+                        //    name = "char";
+                        //}
+                        name = "char*";
+                    }
+                    break;
+                default:
+                    {
+                        //if ((Type == BasicTypesEnum.kTypeCode_Class) || (Type == BasicTypesEnum.kTypeCode_Array))
+                        //{
+                        //    name = $"fb::{name}*";
+                        //}
+                        //if ((Type == BasicTypesEnum.kTypeCode_ValueType) || (Type == BasicTypesEnum.kTypeCode_Enum))
+                        //{
+                        //    name = $"fb::{name}";
+                        //}
+                    }
+                    break;
+            }
 
-        private static void ProcessValueType(IntPtr next)
-        {
-            structList.Add(new SDKValueTypeInfo(next, remoteProcess));
+            return name;
         }
 
         static void Main(string[] args)
         {
-            //remoteProcess = new RemoteProcess("starwarsbattlefrontii");
+            RemoteProcess remoteProcess = new RemoteProcess("starwarsbattlefrontii");
+
+            List<SDKEnumFieldInfo> enumList = new List<SDKEnumFieldInfo>();
+            List<SDKValueTypeInfo> structList = new List<SDKValueTypeInfo>();
+            List<SDKClassInfo> classList = new List<SDKClassInfo>();
+
+            bool forIDA = true;    // set true to adjust output for IDA import (Array<> becomes pointer to type)
+
             remoteProcess.OpenProcessMemory();
 
             var peImageBuffer = new PEImageBuffer(remoteProcess);
@@ -57,7 +116,7 @@ namespace SWBF2Tool
                     // some functions apparently defined, skip for now investigate later
                     type = BasicTypesEnum.kTypeCode_Void;
                 }
-                if (typeInfo.Name.Contains("Float32"))
+                if ((typeInfo.Name.Contains("Float32")) || (typeInfo.Name.Contains("char")))
                 {
                     // uneeded class
                     type = BasicTypesEnum.kTypeCode_Void;
@@ -67,12 +126,12 @@ namespace SWBF2Tool
                 {
                     case BasicTypesEnum.kTypeCode_Enum:
                         {
-                            ProcessEnumType(next);
+                            enumList.Add(new SDKEnumFieldInfo(next, remoteProcess));
                         }
                         break;
                     case BasicTypesEnum.kTypeCode_ValueType:
                         {
-                            ProcessValueType(next);
+                            structList.Add(new SDKValueTypeInfo(next, remoteProcess));
                         }
                         break;
                     case BasicTypesEnum.kTypeCode_Class:
@@ -136,6 +195,55 @@ namespace SWBF2Tool
                 enumLines.Add("");
             }
 
+            // sort structs for dependencies
+            int infoCount = 0;
+            while (infoCount < structList.Count)
+            {
+                var item = structList.ElementAt(infoCount);
+
+                foreach (SDKFieldEntry field in item.Fields)
+                {
+                    var fieldIndex = 0;
+                    var fieldTypeName = field.fieldType;
+
+                    if (fieldTypeName.Contains("-Array"))
+                    {
+                        fieldTypeName = field.fieldType.Substring(0, field.fieldType.Length - 6);
+                    }
+
+                    if ((field.fieldBasicType == BasicTypesEnum.kTypeCode_ValueType)
+                        || (field.fieldBasicType == BasicTypesEnum.kTypeCode_Array))
+                    {
+                        foreach (SDKValueTypeInfo fieldInfo in structList)
+                        {
+                            if (fieldInfo.Name == fieldTypeName)
+                            {
+                                fieldIndex = structList.IndexOf(fieldInfo);
+                            }
+                        }
+
+                        if (fieldIndex != 0)
+                        {
+                            var itemIndex = structList.IndexOf(item);
+
+                            // if we find the field item lower than the owning type, drop the owning type below it
+                            if (fieldIndex > itemIndex)
+                            {
+                                var tempInfo = structList.ElementAt(itemIndex);
+                                structList.RemoveAt(itemIndex);
+                                structList.Insert(fieldIndex, tempInfo);
+
+                                // start the list again
+                                infoCount = 0;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                ++infoCount;
+            }
+
             var structLines = new List<string>();
             foreach (SDKValueTypeInfo structInfo in structList)
             {
@@ -149,12 +257,42 @@ namespace SWBF2Tool
 
                 for (int i = 0; i < structInfo.FieldCount; i++)
                 {
-                    structLines.Add($"    {structInfo.Fields.ElementAt(i).fieldType} {structInfo.Fields.ElementAt(i).fieldName}; //0x{structInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
+                    var fieldType = structInfo.Fields.ElementAt(i).fieldType;
+                    var postfix = "";
+
+                    if (fieldType.Contains("-Array"))
+                    {
+                        fieldType = fieldType.Substring(0, fieldType.Length - 6);
+                    }
+
+                    fieldType = FixTypeName(fieldType);
+
+                    if ((structInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Class) && (fieldType != "float"))
+                    {
+                        postfix = "*";
+                    }
+
+                    if (structInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Array)
+                    {
+                        if (forIDA)
+                        {
+                            postfix = "*";
+                        }
+                        else
+                        {
+                            fieldType = $"Array<{fieldType}>";
+                        }
+                    }
+
+                    structLines.Add($"    {fieldType}{postfix} {structInfo.Fields.ElementAt(i).fieldName}; //0x{structInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
                 }
 
                 structLines.Add("};");
                 structLines.Add("");
             }
+
+            // sort by classid
+            classList = classList.OrderBy(x => x.ClassId).ToList();
 
             var nameLines = new List<string>
             {
@@ -171,6 +309,9 @@ namespace SWBF2Tool
                 ""
             };
             var classLines = new List<string>();
+
+            var declarationLines = new List<string>();
+
             foreach (SDKClassInfo classInfo in classList)
             {
                 classLines.Add("////////////////////////////////////////");
@@ -201,7 +342,34 @@ namespace SWBF2Tool
 
                 for (int i = 0; i < classInfo.FieldCount; i++)
                 {
-                    classLines.Add($"    {classInfo.Fields.ElementAt(i).fieldType} {classInfo.Fields.ElementAt(i).fieldName}; //0x{classInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
+                    var fieldType = classInfo.Fields.ElementAt(i).fieldType;
+                    var postfix = "";
+
+                    if (fieldType.Contains("-Array"))
+                    {
+                        fieldType = fieldType.Substring(0, fieldType.Length - 6);
+                    }
+
+                    fieldType = FixTypeName(fieldType);
+
+                    if ((classInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Class) && (fieldType != "float"))
+                    {
+                        postfix = "*";
+                    }
+
+                    if (classInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Array)
+                    {
+                        if (forIDA)
+                        {
+                            postfix = "*";
+                        }
+                        else
+                        {
+                            fieldType = $"Array<{fieldType}>";
+                        }
+                    }
+
+                    classLines.Add($"    {fieldType}{postfix} {classInfo.Fields.ElementAt(i).fieldName}; //0x{classInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
                 }
 
                 classLines.Add("};");
@@ -211,7 +379,16 @@ namespace SWBF2Tool
 
                 classLines.Add("");
 
+                declarationLines.Add($"class {classInfo.Name};");
+
                 // idapython stuff
+                /*
+                 * Python>MakeNames()
+14356C140: can't rename byte as 'PlayerAbilityWeaponInfoEntityData_vtbl' because this byte can't have a name (it is a tail byte).
+14356C178: can't rename byte as 'PlayerAbilityWeaponUpgradeInfoEntityData_vtbl' because this byte can't have a name (it is a tail byte).
+1413481DC: can't rename byte as 'ClientWheelComponent_vtbl' because this byte can't have a name (it is a tail byte).
+141948644: can't rename byte as 'ServerVehicleHealthComponent_vtbl' because this byte can't have a name (it is a tail byte).
+                 */
                 if (classInfo.GetTypeFunction != IntPtr.Zero)
                 {
                     nameLines.Add($"    MakeName(0x{classInfo.GetTypeFunction.ToString("X9")}, \"{classInfo.Name}_GetType\")");
@@ -223,151 +400,9 @@ namespace SWBF2Tool
                 }
             }
 
-            //// buffers for the main .h files
-            //var enumLines = new List<string>();
-            //var structLines = new List<string>();
-            //var classLines = new List<string>();
-
-            //// buffer for the idapython script
-            //var nameLines = new List<string>
-            //{
-            //    "from idautils import *",
-            //    "from idc import *",
-            //    "from idaapi import *",
-            //    "",
-            //    "def MakeNames():",
-            //    "    startEa = SegByBase(SegByName(\"HEADER\"))",
-            //    "    imageend = 0",
-            //    "",
-            //    "    for ea in Segments():",
-            //    "        imageend = SegEnd(ea)",
-            //    ""
-            //};
-
-            //// buffers for sorting by dependency
-            //var structList = new List<SDKValueTypeInfo>();
-            //var classList = new List<SDKValueTypeInfo>();
-
-            //while (remoteProcess.IsValidImagePtr(next))
-            //{
-            //    SDKTypeInfo typeInfo = new SDKTypeInfo(next, remoteProcess);
-
-            //    var type = typeInfo.Type;
-            //    if (typeInfo.Name.Contains('('))
-            //    {
-            //        // some functions apparently defined, skip for now
-            //        type = BasicTypesEnum.kTypeCode_Void;
-            //    }
-
-            //    if (type == BasicTypesEnum.kTypeCode_Enum)
-            //    {
-            //        var enumInfo = new SDKEnumFieldInfo(next, remoteProcess);
-
-            //        enumLines.Add("////////////////////////////////////////");
-            //        enumLines.Add($"// Runtime Id : {enumInfo.RuntimeId}");
-            //        enumLines.Add($"// TypeInfo : 0x{enumInfo.ThisTypeInfo.ToString("X9")}");
-
-            //        enumLines.Add($"enum {enumInfo.Name}");
-
-            //        enumLines.Add("{");
-
-            //        for (int i = 0; i < enumInfo.FieldCount; i++)
-            //        {
-            //            string end = ",";
-            //            if (i == enumInfo.FieldCount - 1)
-            //            {
-            //                end = "";
-            //            }
-            //            enumLines.Add($"    {enumInfo.Fields.ElementAt(i).fieldName}{end} //0x{i.ToString("X4")}");
-            //        }
-
-            //        enumLines.Add("};");
-            //        enumLines.Add("");
-            //    }
-
-            //    if (type == BasicTypesEnum.kTypeCode_ValueType)
-            //    {
-            //        var structInfo = new SDKValueTypeInfo(next, remoteProcess);
-
-            //        structLines.Add("////////////////////////////////////////");
-            //        structLines.Add($"// Runtime Id : {structInfo.RuntimeId}");
-            //        structLines.Add($"// TypeInfo : 0x{structInfo.ThisTypeInfo.ToString("X9")}");
-
-            //        structLines.Add($"struct {structInfo.Name}");
-
-            //        structLines.Add("{");
-
-            //        for (int i = 0; i < structInfo.FieldCount; i++)
-            //        {
-            //            structLines.Add($"    {structInfo.Fields.ElementAt(i).fieldType} {structInfo.Fields.ElementAt(i).fieldName}; //0x{structInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
-            //        }
-
-            //        structLines.Add("};");
-            //        structLines.Add("");
-            //    }
-
-            //    if (type == BasicTypesEnum.kTypeCode_Class)
-            //    {
-            //        var classInfo = new SDKClassInfo(next, remoteProcess, peImageBuffer);
-
-
-            //        classLines.Add("////////////////////////////////////////");
-            //        classLines.Add($"// Class Id : {classInfo.ClassId}");
-            //        classLines.Add($"// Runtime Id : {classInfo.RuntimeId}");
-            //        classLines.Add($"// TypeInfo : 0x{classInfo.ThisTypeInfo.ToString("X9")}");
-            //        classLines.Add($"// Default Instance : 0x{classInfo.DefaultInstance.ToString("X9")}");
-            //        classLines.Add($"// Vtable : 0x{classInfo.VTable.ToString("X9")}");
-
-            //        classLines.Add($"#ifndef _{classInfo.Name}_");
-            //        classLines.Add($"#define _{classInfo.Name}_");
-
-            //        if ((classInfo.ParentClassName != classInfo.Name) && (classInfo.ParentClassName != ""))
-            //        {
-            //            classLines.Add($"class {classInfo.Name} : {classInfo.ParentClassName}");
-            //        }
-            //        else
-            //        {
-            //            classLines.Add($"class {classInfo.Name}");
-            //        }
-
-            //        classLines.Add("{");
-
-            //        if (classInfo.FieldCount > 0)
-            //        {
-            //            classLines.Add("public:");
-            //        }
-
-            //        for (int i = 0; i < classInfo.FieldCount; i++)
-            //        {
-            //            classLines.Add($"    {classInfo.Fields.ElementAt(i).fieldType} {classInfo.Fields.ElementAt(i).fieldName}; //0x{classInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
-            //        }
-
-            //        classLines.Add("};");
-            //        classLines.Add($"//0x{classInfo.TotalSize.ToString("X4")}");
-
-            //        classLines.Add($"#endif");
-
-            //        classLines.Add("");
-
-            //        // idapython stuff
-            //        if(classInfo.GetTypeFunction != IntPtr.Zero)
-            //        {
-            //            nameLines.Add($"    MakeName(0x{classInfo.GetTypeFunction.ToString("X9")}, \"{classInfo.Name}_GetType\")");
-            //        }
-
-            //        if (classInfo.VTable != IntPtr.Zero)
-            //        {
-            //            nameLines.Add($"    MakeName(0x{classInfo.VTable.ToString("X9")}, \"{classInfo.Name}_vtbl\")");
-            //        }
-            //    }
-
-            //    next = typeInfo.Next;
-
-            //    count++;
-            //}
-
             System.IO.File.WriteAllLines(@".\Enums.h", enumLines);
             System.IO.File.WriteAllLines(@".\Structs.h", structLines);
+            System.IO.File.WriteAllLines(@".\Declarations.h", declarationLines);
             System.IO.File.WriteAllLines(@".\Classes.h", classLines);
             System.IO.File.WriteAllLines(@".\MakeNames.py", nameLines);
 

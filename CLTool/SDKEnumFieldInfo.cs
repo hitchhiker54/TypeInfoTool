@@ -4,6 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+/*
+ * Error D:\dump\swbf2\26-4-18 update\Enums.h,10051: Type 'CutsceneActorType' is already defined
+Error D:\dump\swbf2\26-4-18 update\Enums.h,13101: Type 'DSJetpackMovementMode' is already defined
+Error D:\dump\swbf2\26-4-18 update\Enums.h,13835: Type 'AIPathLinkDirection' is already defined
+ * */
+
 namespace SWBF2Tool
 {
     public class SDKEnumFieldInfo : SDKTypeInfo
@@ -20,7 +26,7 @@ namespace SWBF2Tool
             EnumFieldInfo typeInfo = remoteProcess.Read<EnumFieldInfo>(address);
             EnumFieldInfoData typeInfoData = remoteProcess.Read<EnumFieldInfoData>(typeInfo.m_InfoData);
 
-            Name = $"fb::{remoteProcess.ReadString(typeInfoData.m_Name, 255)}";
+            Name = $"{remoteProcess.ReadString(typeInfoData.m_Name, 255)}";
             ThisTypeInfo = address;
             Type = typeInfoData.GetEntryType();
             Flags = typeInfoData.m_Flags;
@@ -40,6 +46,8 @@ namespace SWBF2Tool
 
                     fieldEntry.fieldName = remoteProcess.ReadString(fieldInfoData.m_Name, 255);
                     fieldEntry.fieldType = "";
+                    fieldEntry.fieldInternalType = "";
+                    fieldEntry.fieldBasicType = BasicTypesEnum.kTypeCode_Void;
                     fieldEntry.fieldOffset = 0;
                     fieldEntry.fieldSize = 0;
                     fieldEntry.lastFieldOffset = 0;

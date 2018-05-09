@@ -14,6 +14,8 @@ namespace SWBF2Tool
         public int fieldOffset;
         public int fieldSize;
         public string fieldType;
+        public string fieldInternalType;
+        public BasicTypesEnum fieldBasicType;
         public int lastFieldOffset;
         public int lastFieldSize;
     }

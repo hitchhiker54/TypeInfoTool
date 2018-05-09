@@ -14,6 +14,8 @@ Basic rewrite of Reunion's code, specifically for SWBF 2 (2017).
 
 Does not currently sort classes by dependency, does not produce declarations.h
 
-Requires about 40mins to run when calling GetVtable() in SDKClassInfo, 30secs if not (on my machine). Should scale with no. of logical cores.
+Requires about 50mins to run when calling GetVtable() in SDKClassInfo, 2 mins if not (on my machine). Should scale with no. of logical cores.
 
-0.3b Added multithreading for class typeinfos to assist with time taken to find vtables for lea gettype classes. More fixes for incorrect class dumps
+0.3b Added multithreading for class typeinfos to assist with time taken to find vtables for lea gettype classes. More fixes for incorrect class dumps.
+
+0.4 Sorts Structs.h by dependency for import into IDA. Generates Declarations.h for importing Classes.h. Added a bool in Main() to switch c++/ida import output for the headers (ida version replaces Array<> types with type poitners). A few remaining issues in enums due to all in one file blocks 3 classes importing correctly.

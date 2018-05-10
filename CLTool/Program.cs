@@ -83,7 +83,7 @@ namespace SWBF2Tool
             List<SDKValueTypeInfo> structList = new List<SDKValueTypeInfo>();
             List<SDKClassInfo> classList = new List<SDKClassInfo>();
 
-            bool forIDA = true;    // set true to adjust output for IDA import (Array<> becomes pointer to type)
+            bool forIDA = false;    // set true to adjust output for IDA import (Array<> becomes pointer to type)
 
             remoteProcess.OpenProcessMemory();
 
@@ -188,7 +188,15 @@ namespace SWBF2Tool
                     {
                         end = "";
                     }
-                    enumLines.Add($"    {enumInfo.Fields.ElementAt(i).fieldName}{end} //0x{i.ToString("X4")}");
+
+                    // fix some small issues related to having all the enums in the same file
+                    var fieldName = enumInfo.Fields.ElementAt(i).fieldName;
+                    if ((enumInfo.Name == "CutsceneActorType") || (enumInfo.Name == "DSJetpackMovementMode") || (enumInfo.Name == "AIPathLinkDirection"))
+                    {
+                        fieldName = $"{fieldName}_";
+                    }
+
+                    enumLines.Add($"    {fieldName}{end} //0x{i.ToString("X4")}");
                 }
 
                 enumLines.Add("};");

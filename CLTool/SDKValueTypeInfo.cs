@@ -4,6 +4,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+/* 
+Error D:\dump\swbf2\26-4-18 update\test\Enums.h,10051: Type 'CutsceneActorType' is already defined
+  included from D:\dump\swbf2\26-4-18 update\test\idaimport.h, 7
+Error D:\dump\swbf2\26-4-18 update\test\Enums.h,13101: Type 'DSJetpackMovementMode' is already defined
+Error D:\dump\swbf2\26-4-18 update\test\Enums.h,13835: Type 'AIPathLinkDirection' is already defined
+Error D:\dump\swbf2\26-4-18 update\test\Structs.h,8032: Syntax error near: char
+  included from D:\dump\swbf2\26-4-18 update\test\idaimport.h, 8
+Error D:\dump\swbf2\26-4-18 update\test\Structs.h,8035: Syntax error near: }
+ * */
+
 namespace SWBF2Tool
 {
     public class SDKValueTypeInfo : SDKTypeInfo
@@ -11,8 +21,8 @@ namespace SWBF2Tool
         public List<SDKFieldEntry> Fields { get; protected set; } = new List<SDKFieldEntry>();
 
         // field offset + size logging for interfield padding
-        private int lastFieldOffset = 0;
-        private int lastFieldSize = 0;
+        public int lastFieldOffset = 0;
+        public int lastFieldSize = 0;
 
         public SDKValueTypeInfo() : base()
         {
@@ -24,7 +34,7 @@ namespace SWBF2Tool
             ValueTypeInfo typeInfo = remoteProcess.Read<ValueTypeInfo>(address);
             ValueTypeInfoData typeInfoData = remoteProcess.Read<ValueTypeInfoData>(typeInfo.m_InfoData);
 
-            Name = $"fb::{remoteProcess.ReadString(typeInfoData.m_Name, 255)}";
+            Name = $"{remoteProcess.ReadString(typeInfoData.m_Name, 255)}";
             ThisTypeInfo = address;
             Type = typeInfoData.GetEntryType();
             Flags = typeInfoData.m_Flags;
@@ -40,6 +50,8 @@ namespace SWBF2Tool
                 SDKFieldEntry fieldEntry;
 
                 fieldEntry.fieldType = "char";
+                fieldEntry.fieldInternalType = "Uint8";
+                fieldEntry.fieldBasicType = BasicTypesEnum.kTypeCode_Uint8;
                 fieldEntry.fieldName = $"_0x000[{TotalSize}]";
                 fieldEntry.fieldOffset = 0;
                 fieldEntry.fieldSize = TotalSize;
@@ -68,6 +80,9 @@ namespace SWBF2Tool
                     {
                         fieldEntry.fieldType = fieldTypeInfo.GetCppType(); //fieldTypeInfo.Name;
                     }
+
+                    fieldEntry.fieldInternalType = fieldTypeInfo.Name;
+                    fieldEntry.fieldBasicType = fieldTypeInfo.Type;//fieldInfoData.GetEntryType();
 
                     fieldEntry.fieldName = remoteProcess.ReadString(fieldInfoData.m_Name, 255);
                     fieldEntry.fieldOffset = fieldInfoData.m_FieldOffset;
@@ -116,6 +131,8 @@ namespace SWBF2Tool
                         if (TotalSize > (Fields.ElementAt(i).fieldOffset + Fields.ElementAt(i).fieldSize))
                         {
                             fieldEntry.fieldType = "char";
+                            fieldEntry.fieldInternalType = "Uint8";
+                            fieldEntry.fieldBasicType = BasicTypesEnum.kTypeCode_Uint8;
                             fieldEntry.fieldName = $"_0x{(Fields.ElementAt(i).fieldOffset + Fields.ElementAt(i).fieldSize).ToString("X4")}[{TotalSize - (Fields.ElementAt(i).fieldOffset + Fields.ElementAt(i).fieldSize)}]";
                             fieldEntry.fieldOffset = Fields.ElementAt(i).fieldOffset + Fields.ElementAt(i).fieldSize;
                             fieldEntry.fieldSize = TotalSize - (Fields.ElementAt(i).fieldOffset + Fields.ElementAt(i).fieldSize);
@@ -133,6 +150,8 @@ namespace SWBF2Tool
                         if (Fields.ElementAt(i).fieldOffset > (Fields.ElementAt(i).lastFieldOffset + Fields.ElementAt(i).lastFieldSize))
                         {
                             fieldEntry.fieldType = "char";
+                            fieldEntry.fieldInternalType = "Uint8";
+                            fieldEntry.fieldBasicType = BasicTypesEnum.kTypeCode_Uint8;
                             fieldEntry.fieldName = $"_0x{(Fields.ElementAt(i).lastFieldOffset + Fields.ElementAt(i).lastFieldSize).ToString("X4")}[{Fields.ElementAt(i).fieldOffset - (Fields.ElementAt(i).lastFieldOffset + Fields.ElementAt(i).lastFieldSize)}]";
                             fieldEntry.fieldOffset = Fields.ElementAt(i).lastFieldOffset + Fields.ElementAt(i).lastFieldSize;
                             fieldEntry.fieldSize = Fields.ElementAt(i).fieldOffset - (Fields.ElementAt(i).lastFieldOffset + Fields.ElementAt(i).lastFieldSize);

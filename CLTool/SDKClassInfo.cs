@@ -21,8 +21,8 @@ namespace SWBF2Tool
         public IntPtr GetTypeFunction { get; protected set; } = IntPtr.Zero;
 
         // field offset + size logging for interfield padding
-        private int lastFieldOffset = 0;
-        private int lastFieldSize = 0;
+        public int lastFieldOffset = 0;
+        public int lastFieldSize = 0;
 
         public SDKClassInfo() : base()
         {
@@ -34,7 +34,7 @@ namespace SWBF2Tool
             ClassInfo typeInfo = remoteProcess.Read<ClassInfo>(address);
             ClassInfoData typeInfoData = remoteProcess.Read<ClassInfoData>(typeInfo.m_InfoData);
 
-            Name = $"fb::{remoteProcess.ReadString(typeInfoData.m_Name, 255)}";
+            Name = $"{remoteProcess.ReadString(typeInfoData.m_Name, 255)}";
             ThisTypeInfo = address;
             Type = typeInfoData.GetEntryType();
             Flags = typeInfoData.m_Flags;
@@ -43,10 +43,10 @@ namespace SWBF2Tool
             FieldCount = typeInfoData.m_FieldCount;
             ParentClass = typeInfoData.m_SuperClass;
             var superClassInfo = new SDKTypeInfo(ParentClass, remoteProcess);
-            ParentClassName = $"fb::{superClassInfo.Name}";
+            ParentClassName = $"{superClassInfo.Name}";
 
             // debug
-            if (Name == "fb::IglooSubsystem")
+            if (Name == "PoseTrackKeyframe")
             {
                 Name = Name;
             }
@@ -60,6 +60,8 @@ namespace SWBF2Tool
                     SDKFieldEntry fieldEntry;
 
                     fieldEntry.fieldType = "char";
+                    fieldEntry.fieldInternalType = "Uint8";
+                    fieldEntry.fieldBasicType = BasicTypesEnum.kTypeCode_Uint8;
                     fieldEntry.fieldName = $"_0x{superClassInfo.TotalSize.ToString("X4")}[{TotalSize - superClassInfo.TotalSize}]";
                     fieldEntry.fieldOffset = superClassInfo.TotalSize;
                     fieldEntry.fieldSize = TotalSize - superClassInfo.TotalSize;
@@ -76,6 +78,8 @@ namespace SWBF2Tool
                     SDKFieldEntry fieldEntry;
 
                     fieldEntry.fieldType = "char";
+                    fieldEntry.fieldInternalType = "Uint8";
+                    fieldEntry.fieldBasicType = BasicTypesEnum.kTypeCode_Uint8;
                     fieldEntry.fieldName = $"_0x000[{TotalSize}]";
                     fieldEntry.fieldOffset = 0;
                     fieldEntry.fieldSize = TotalSize;
@@ -105,6 +109,8 @@ namespace SWBF2Tool
                     {
                         fieldEntry.fieldType = fieldTypeInfo.GetCppType(); //fieldTypeInfo.Name;
                     }
+                    fieldEntry.fieldInternalType = fieldTypeInfo.Name;
+                    fieldEntry.fieldBasicType = fieldTypeInfo.Type;//fieldInfoData.GetEntryType();
 
                     fieldEntry.fieldName = remoteProcess.ReadString(fieldInfoData.m_Name, 255);
                     fieldEntry.fieldOffset = fieldInfoData.m_FieldOffset;
@@ -116,6 +122,8 @@ namespace SWBF2Tool
                     if ((fieldEntry.fieldType == "int16_t") && (fieldEntry.fieldSize == 1))
                     {
                         fieldEntry.fieldType = "bool";
+                        fieldEntry.fieldInternalType = "Boolean";
+                        fieldEntry.fieldBasicType = BasicTypesEnum.kTypeCode_Boolean;
                     }
 
 
@@ -153,6 +161,8 @@ namespace SWBF2Tool
                         if (TotalSize > (Fields.ElementAt(i).fieldOffset + Fields.ElementAt(i).fieldSize))
                         {
                             fieldEntry.fieldType = "char";
+                            fieldEntry.fieldInternalType = "Uint8";
+                            fieldEntry.fieldBasicType = BasicTypesEnum.kTypeCode_Uint8;
                             fieldEntry.fieldName = $"_0x{(Fields.ElementAt(i).fieldOffset + Fields.ElementAt(i).fieldSize).ToString("X4")}[{TotalSize - (Fields.ElementAt(i).fieldOffset + Fields.ElementAt(i).fieldSize)}]";
                             fieldEntry.fieldOffset = Fields.ElementAt(i).fieldOffset + Fields.ElementAt(i).fieldSize;
                             fieldEntry.fieldSize = TotalSize - (Fields.ElementAt(i).fieldOffset + Fields.ElementAt(i).fieldSize);
@@ -172,6 +182,8 @@ namespace SWBF2Tool
                         {
                             var debug = Fields.ElementAt(i).fieldOffset;
                             fieldEntry.fieldType = "char";
+                            fieldEntry.fieldInternalType = "Uint8";
+                            fieldEntry.fieldBasicType = BasicTypesEnum.kTypeCode_Uint8;
                             fieldEntry.fieldName = $"_0x{superClassInfo.TotalSize.ToString("X4")}[{Fields.ElementAt(i).fieldOffset - superClassInfo.TotalSize}]";
                             fieldEntry.fieldOffset = superClassInfo.TotalSize;
                             fieldEntry.fieldSize = Fields.ElementAt(i).fieldOffset - superClassInfo.TotalSize;
@@ -190,6 +202,8 @@ namespace SWBF2Tool
                         if (Fields.ElementAt(i).fieldOffset > (Fields.ElementAt(i).lastFieldOffset + Fields.ElementAt(i).lastFieldSize))
                         {
                             fieldEntry.fieldType = "char";
+                            fieldEntry.fieldInternalType = "Uint8";
+                            fieldEntry.fieldBasicType = BasicTypesEnum.kTypeCode_Uint8;
                             fieldEntry.fieldName = $"_0x{(Fields.ElementAt(i).lastFieldOffset + Fields.ElementAt(i).lastFieldSize).ToString("X4")}[{Fields.ElementAt(i).fieldOffset - (Fields.ElementAt(i).lastFieldOffset + Fields.ElementAt(i).lastFieldSize)}]";
                             fieldEntry.fieldOffset = Fields.ElementAt(i).lastFieldOffset + Fields.ElementAt(i).lastFieldSize;
                             fieldEntry.fieldSize = Fields.ElementAt(i).fieldOffset - (Fields.ElementAt(i).lastFieldOffset + Fields.ElementAt(i).lastFieldSize);
@@ -209,7 +223,7 @@ namespace SWBF2Tool
             Next = typeInfo.m_Next;
             DefaultInstance = typeInfo.m_DefaultInstance;
             ClassId = typeInfo.m_ClassId;
-            //GetVtable(remoteProcess, peImageBuffer);
+            GetVtable(remoteProcess, peImageBuffer);
         }
 
         private void GetVtable(RemoteProcess remoteProcess, PEImageBuffer peImageBuffer)

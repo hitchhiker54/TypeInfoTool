@@ -10,4 +10,4 @@ Requires about 50mins to run when calling GetVtable() in SDKClassInfo, 2 mins if
 
 0.3b Added multithreading for class typeinfos to assist with time taken to find vtables for lea gettype classes. More fixes for incorrect class dumps.
 
-0.4 Sorts Structs.h by dependency for import into IDA. Generates Declarations.h for importing Classes.h. Added a bool in Main() to switch c++/ida import output for the headers (ida version replaces Array<> types with type poitners). A few remaining issues in enums due to all in one file blocks 3 classes importing correctly.
+0.4a Sorts Structs.h by dependency for import into IDA. Generates Declarations.h for importing Classes.h. Added a bool in Main() to switch c++/ida import output for the headers (ida version replaces Array<> types with type poitners). 

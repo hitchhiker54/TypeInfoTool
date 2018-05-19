@@ -133,6 +133,7 @@ namespace SWBF2Tool
                 {
                     var fieldType = structInfo.Fields.ElementAt(i).fieldType;
                     var postfix = "";
+                    var prefix = "";
 
                     if (fieldType.Contains("-Array"))
                     {
@@ -141,28 +142,37 @@ namespace SWBF2Tool
 
                     fieldType = FixTypeName(fieldType);
 
+                    if ((structInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Enum) ||
+                                (structInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_ValueType) && (fieldType != "uint64_t"))
+                    {
+                        prefix = "fb::";
+                    }
+
                     if ((structInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Class) && (fieldType != "float"))
                     {
+                        prefix = "fb::";
                         postfix = "*";
                     }
 
                     if (structInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Array)
                     {
+                        var fieldPrefix = "";
                         var fieldPostfix = "";
 
                         foreach(SDKClassInfo c in classList)
                         {
                             if (c.Name == fieldType)
                             {
+                                fieldPrefix = "fb::";
                                 fieldPostfix = "*";
                                 break;
                             }
                         }
 
-                        fieldType = $"Array<{fieldType}{fieldPostfix}>";
+                        fieldType = $"Array<{fieldPrefix}{fieldType}{fieldPostfix}>";
                     }
 
-                    structLines.Add($"    {fieldType}{postfix} {structInfo.Fields.ElementAt(i).fieldName}; //0x{structInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
+                    structLines.Add($"    {prefix}{fieldType}{postfix} {structInfo.Fields.ElementAt(i).fieldName}; //0x{structInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
                 }
 
                 structLines.Add("};");
@@ -188,6 +198,11 @@ namespace SWBF2Tool
                 //classLines.Add("namespace fb");
                 //classLines.Add("{");
 
+                if (classInfo.Name.Contains("::"))
+                {
+                    continue;
+                }
+
                 classLines.Add("////////////////////////////////////////");
                 classLines.Add($"// Class Id : {classInfo.ClassId}");
                 classLines.Add($"// Runtime Id : {classInfo.RuntimeId}");
@@ -200,7 +215,7 @@ namespace SWBF2Tool
 
                 if ((classInfo.ParentClassName != classInfo.Name) && (classInfo.ParentClassName != ""))
                 {
-                    classLines.Add($"class {classInfo.Name} : {classInfo.ParentClassName}");
+                    classLines.Add($"class {classInfo.Name} : public {classInfo.ParentClassName}");
                 }
                 else
                 {
@@ -218,6 +233,7 @@ namespace SWBF2Tool
                 {
                     var fieldType = classInfo.Fields.ElementAt(i).fieldType;
                     var postfix = "";
+                    var prefix = "";
 
                     if (fieldType.Contains("-Array"))
                     {
@@ -226,28 +242,37 @@ namespace SWBF2Tool
 
                     fieldType = FixTypeName(fieldType);
 
+                    if ((classInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Enum) || 
+                                (classInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_ValueType) && (fieldType != "uint64_t"))
+                    {
+                        prefix = "fb::";
+                    }
+
                     if ((classInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Class) && (fieldType != "float"))
                     {
+                        prefix = "fb::";
                         postfix = "*";
                     }
 
                     if (classInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Array)
                     {
                         var fieldPostfix = "";
+                        var fieldPrefix = "";
 
                         foreach (SDKClassInfo c in classList)
                         {
                             if (c.Name == fieldType)
                             {
+                                fieldPrefix = "fb::";
                                 fieldPostfix = "*";
                                 break;
                             }
                         }
 
-                        fieldType = $"Array<{fieldType}{fieldPostfix}>";
+                        fieldType = $"Array<{fieldPrefix}{fieldType}{fieldPostfix}>";
                     }
 
-                    classLines.Add($"    {fieldType}{postfix} {classInfo.Fields.ElementAt(i).fieldName}; //0x{classInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
+                    classLines.Add($"    {prefix}{fieldType}{postfix} {classInfo.Fields.ElementAt(i).fieldName}; //0x{classInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
                 }
 
                 classLines.Add("};");

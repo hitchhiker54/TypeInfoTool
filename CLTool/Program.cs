@@ -83,7 +83,7 @@ namespace SWBF2Tool
             List<SDKValueTypeInfo> structList = new List<SDKValueTypeInfo>();
             List<SDKClassInfo> classList = new List<SDKClassInfo>();
 
-            bool forIDA = false;    // set true to adjust output for IDA import (Array<> becomes pointer to type)
+            //bool forIDA = false;    // set true to adjust output for IDA import (Array<> becomes pointer to type)
 
             remoteProcess.OpenProcessMemory();
 
@@ -174,7 +174,7 @@ namespace SWBF2Tool
 
                 next = typeInfo.Next;
 
-                count++;
+                ++count;
             }
 
             Task.WaitAll(tasks.ToArray());

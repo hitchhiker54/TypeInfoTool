@@ -13,3 +13,5 @@ Requires about 50mins to run when calling GetVtable() in SDKClassInfo, 2 mins if
 0.4a Sorts Structs.h by dependency for import into IDA. Generates Declarations.h for importing Classes.h. Added a bool in Main() to switch c++/ida import output for the headers (ida version replaces Array<> types with type poitners). 
 
 0.5 Now produces 2 folders of files - cpp & ida. Each contains 4 headers for direct inclusion, and the ida folder also contains a subfolder of individual .h for each class; this should ease filling the empy classes for re purposes and reintegrating for new patches. Temporarily disabled finding lea gettype vtables due to unfixed bug in the multithreaded code. 
+
+0.5a Fixed some errors for actual compilation of cpp files :D

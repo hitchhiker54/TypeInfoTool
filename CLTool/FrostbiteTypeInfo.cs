@@ -35,10 +35,109 @@ namespace SWBF2Tool
         //public MemberInfoFlags m_Flags; //0x0008
         public UInt16 m_Flags;
 
-        public BasicTypesEnum GetEntryType()
+        //public BasicTypesEnum GetEntryType()
+        //{
+        //    return (BasicTypesEnum)((/*m_Flags.*/m_Flags & 0x01F0) >> 0x05);
+        //}
+
+        public BasicTypesEnum GetNewEntryType()
         {
-            return (BasicTypesEnum)((/*m_Flags.*/m_Flags & 0x01F0) >> 0x05);
+            var type = m_Flags & 0x03E0;
+            var Type = BasicTypesEnum.kTypeCode_Void;
+
+            switch (type)
+            {
+                case 0x0000:
+                    Type = BasicTypesEnum.kTypeCode_Void;
+                    break;
+                case 0x0020:
+                    Type = BasicTypesEnum.kTypeCode_DbObject;
+                    break;
+                case 0x0040:
+                    Type = BasicTypesEnum.kTypeCode_ValueType;
+                    break;
+                case 0x0060:
+                    Type = BasicTypesEnum.kTypeCode_Class;
+                    break;
+                case 0x0080:
+                    Type = BasicTypesEnum.kTypeCode_Array;
+                    break;
+                case 0x00A0:
+                    Type = BasicTypesEnum.kTypeCode_FixedArray;
+                    break;
+                case 0x00C0:
+                    Type = BasicTypesEnum.kTypeCode_String;
+                    break;
+                case 0x00E0:
+                    Type = BasicTypesEnum.kTypeCode_CString;
+                    break;
+                case 0x0100:
+                    Type = BasicTypesEnum.kTypeCode_Enum;
+                    break;
+                case 0x0120:
+                    Type = BasicTypesEnum.kTypeCode_FileRef;
+                    break;
+                case 0x0140:
+                    Type = BasicTypesEnum.kTypeCode_Boolean;
+                    break;
+                case 0x0160:
+                    Type = BasicTypesEnum.kTypeCode_Int8;
+                    break;
+                case 0x0180:
+                    Type = BasicTypesEnum.kTypeCode_Uint8;
+                    break;
+                case 0x01A0:
+                    Type = BasicTypesEnum.kTypeCode_Int16;
+                    break;
+                case 0x01C0:
+                    Type = BasicTypesEnum.kTypeCode_Uint16;
+                    break;
+                case 0x01E0:
+                    Type = BasicTypesEnum.kTypeCode_Int32;
+                    break;
+                case 0x0200:
+                    Type = BasicTypesEnum.kTypeCode_Uint32;
+                    break;
+                case 0x0220:
+                    Type = BasicTypesEnum.kTypeCode_Int64;
+                    break;
+                case 0x0240:
+                    Type = BasicTypesEnum.kTypeCode_Uint64;
+                    break;
+                case 0x0260:
+                    Type = BasicTypesEnum.kTypeCode_Float32;
+                    break;
+                case 0x0280:
+                    Type = BasicTypesEnum.kTypeCode_Float64;
+                    break;
+                case 0x02A0:
+                    Type = BasicTypesEnum.kTypeCode_Guid;
+                    break;
+                case 0x02C0:
+                    Type = BasicTypesEnum.kTypeCode_SHA1;
+                    break;
+                case 0x02E0:
+                    Type = BasicTypesEnum.kTypeCode_ResourceRef;
+                    break;
+                case 0x0300:
+                    Type = BasicTypesEnum.kTypeCode_BasicTypeCount;
+                    break;
+                case 0x0320:
+                    Type = BasicTypesEnum.kTypeCode_TypeRef;
+                    break;
+                case 0x0340:
+                    Type = BasicTypesEnum.kTypeCode_BoxedValueRef;
+                    break;
+                default:
+                    //Console.WriteLine($"New type = {typeInfoData.GetNewEntryType().ToString("X4")}, {Name}");
+                    // the remaining atre code 0x300, seem to be function types
+                    Type = BasicTypesEnum.kTypeCode_Void;
+                    break;
+            }
+
+            return Type;
         }
+
     };//Size=0x000A
 
     [StructLayout(LayoutKind.Sequential, Size = 0x0008)]
@@ -88,22 +187,6 @@ namespace SWBF2Tool
     [StructLayout(LayoutKind.Sequential, Size = 0x0010)]
     public class ClassInfoData : TypeInfoData
     {
-        //public IntPtr m_Name; //0x0000 char*
-        ////public MemberInfoFlags m_Flags; //0x0008
-        //public UInt16 m_FlagBits;
-        //public BasicTypesEnum GetEntryType()
-        //{
-        //    return (BasicTypesEnum)((/*m_Flags.*/m_FlagBits & 0x01F0) >> 0x05);
-        //}
-        //public UInt16 m_TotalSize; //0x000A 
-        //public UInt32 pad_0x000C;
-        //public IntPtr m_Module; //0x0010 ModuleInfo*
-        //                        // new for swbfII
-        //public IntPtr m_pArrayTypeInfo; //0x0018 TypeInfo*
-
-        //public UInt16 m_Alignment; //0x0020 
-        //public UInt16 m_FieldCount; //0x0022 
-        //public UInt32 pad_0x001C;
         public IntPtr m_SuperClass; //0x0028 ClassInfo*
         public IntPtr m_Fields; //0x0030 FieldInfoData*
     };//Size=0x0038

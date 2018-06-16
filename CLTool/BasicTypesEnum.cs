@@ -32,6 +32,8 @@ namespace SWBF2Tool
         kTypeCode_Guid,
         kTypeCode_SHA1,
         kTypeCode_ResourceRef,
-        kTypeCode_BasicTypeCount
+        kTypeCode_BasicTypeCount,
+        kTypeCode_TypeRef,
+        kTypeCode_BoxedValueRef
     };
 }

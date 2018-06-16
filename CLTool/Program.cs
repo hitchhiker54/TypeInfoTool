@@ -4,6 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+/// <summary>
+///
+/// </summary>
+
 namespace SWBF2Tool
 {
     class Program
@@ -166,6 +170,11 @@ namespace SWBF2Tool
                             //++tasksCount;
 
                             ++classcount;
+                        }
+                        break;
+                    case BasicTypesEnum.kTypeCode_BasicTypeCount:
+                        {
+                            Console.WriteLine($"{typeInfo.Name}");
                         }
                         break;
                     default:

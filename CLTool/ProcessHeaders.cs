@@ -398,7 +398,7 @@ namespace SWBF2Tool
             {
                 if ((classInfo.ParentClassName != classInfo.Name) && (classInfo.ParentClassName != ""))
                 {
-                    classLines.Add($"class {classInfo.Name} : {classInfo.ParentClassName}");
+                    classLines.Add($"class {classInfo.Name} : public {classInfo.ParentClassName}");
                 }
                 else
                 {

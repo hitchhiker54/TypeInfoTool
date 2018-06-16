@@ -33,7 +33,98 @@ namespace SWBF2Tool
 
             Name = remoteProcess.ReadString(typeInfoData.m_Name, 255);
             ThisTypeInfo = address;
-            Type = typeInfoData.GetEntryType();
+            //Type = typeInfoData.GetEntryType();
+            Type = typeInfoData.GetNewEntryType();
+
+            //switch (typeInfoData.GetNewEntryType())
+            //{
+            //    case 0x0000:
+            //        Type = BasicTypesEnum.kTypeCode_Void;
+            //        break;
+            //    case 0x0020:
+            //        Type = BasicTypesEnum.kTypeCode_DbObject;
+            //        break;
+            //    case 0x0040:
+            //        Type = BasicTypesEnum.kTypeCode_ValueType;
+            //        break;
+            //    case 0x0060:
+            //        Type = BasicTypesEnum.kTypeCode_Class;
+            //        break;
+            //    case 0x0080:
+            //        Type = BasicTypesEnum.kTypeCode_Array;
+            //        break;
+            //    case 0x00A0:
+            //        Type = BasicTypesEnum.kTypeCode_FixedArray;
+            //        break;
+            //    case 0x00C0:
+            //        Type = BasicTypesEnum.kTypeCode_String;
+            //        break;
+            //    case 0x00E0:
+            //        Type = BasicTypesEnum.kTypeCode_CString;
+            //        break;
+            //    case 0x0100:
+            //        Type = BasicTypesEnum.kTypeCode_Enum;
+            //        break;
+            //    case 0x0120:
+            //        Type = BasicTypesEnum.kTypeCode_FileRef;
+            //        break;
+            //    case 0x0140:
+            //        Type = BasicTypesEnum.kTypeCode_Boolean;
+            //        break;
+            //    case 0x0160:
+            //        Type = BasicTypesEnum.kTypeCode_Int8;
+            //        break;
+            //    case 0x0180:
+            //        Type = BasicTypesEnum.kTypeCode_Uint8;
+            //        break;
+            //    case 0x01A0:
+            //        Type = BasicTypesEnum.kTypeCode_Int16;
+            //        break;
+            //    case 0x01C0:
+            //        Type = BasicTypesEnum.kTypeCode_Uint16;
+            //        break;
+            //    case 0x01E0:
+            //        Type = BasicTypesEnum.kTypeCode_Int32;
+            //        break;
+            //    case 0x0200:
+            //        Type = BasicTypesEnum.kTypeCode_Uint32;
+            //        break;
+            //    case 0x0220:
+            //        Type = BasicTypesEnum.kTypeCode_Int64;
+            //        break;
+            //    case 0x0240:
+            //        Type = BasicTypesEnum.kTypeCode_Uint64;
+            //        break;
+            //    case 0x0260:
+            //        Type = BasicTypesEnum.kTypeCode_Float32;
+            //        break;
+            //    case 0x0280:
+            //        Type = BasicTypesEnum.kTypeCode_Float64;
+            //        break;
+            //    case 0x02A0:
+            //        Type = BasicTypesEnum.kTypeCode_Guid;
+            //        break;
+            //    case 0x02C0:
+            //        Type = BasicTypesEnum.kTypeCode_SHA1;
+            //        break;
+            //    case 0x02E0:
+            //        Type = BasicTypesEnum.kTypeCode_ResourceRef;
+            //        break;
+            //    //case 0x0300:
+            //    //    Type = BasicTypesEnum.kTypeCode_BasicTypeCount;
+            //    //    break;
+            //    case 0x0320:
+            //        Type = BasicTypesEnum.kTypeCode_TypeRef;
+            //        break;
+            //    case 0x0340:
+            //        Type = BasicTypesEnum.kTypeCode_BoxedValueRef;
+            //        break;
+            //    default:
+            //        Console.WriteLine($"New type = {typeInfoData.GetNewEntryType().ToString("X4")}, {Name}");
+            //        break;
+            //}
+
+
             Flags = typeInfoData.m_Flags;
             Alignment = typeInfoData.m_Alignment;
             TotalSize = typeInfoData.m_TotalSize;

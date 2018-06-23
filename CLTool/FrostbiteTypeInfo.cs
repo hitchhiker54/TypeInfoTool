@@ -214,12 +214,9 @@ namespace SWBF2Tool
         public UInt64 pad_0090;
         public UInt64 pad_0098;
         public UInt64 pad_00A0;
-        public UInt64 pad_00A8;
+        public UInt64 pad_00A8;// 0X00A8 other pointer to first entity in list
         public UInt64 pad_00B0;
-        public UInt64 pad_00B8;
-        public UInt64 pad_00C0;
-        public UInt64 pad_00C8;
-    };//Size=0x00D0
+    };//Size=0x00B8
 
     [StructLayout(LayoutKind.Sequential, Size = 0x0008)]
     public class ArrayTypeInfoData : TypeInfoData

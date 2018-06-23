@@ -36,7 +36,7 @@ namespace SWBF2Tool
 
             Name = $"{remoteProcess.ReadString(typeInfoData.m_Name, 255)}";
             ThisTypeInfo = address;
-            Type = typeInfoData.GetEntryType();
+            Type = typeInfoData.GetNewEntryType();
             Flags = typeInfoData.m_Flags;
             Alignment = typeInfoData.m_Alignment;
             TotalSize = typeInfoData.m_TotalSize;
@@ -232,45 +232,45 @@ namespace SWBF2Tool
             {
                 VTable = remoteProcess.Read<IntPtr>(DefaultInstance);
             }
-            else
-            {
-                var foundGetType = false;
-                Int64 start = 0;
-                Int64 possibleGetType = 0;
+            //else
+            //{
+            //    var foundGetType = false;
+            //    Int64 start = 0;
+            //    Int64 possibleGetType = 0;
 
-                while (foundGetType == false)
-                {
-                    possibleGetType = peImageBuffer.FindPattern(start, "48 8D 05 ? ? ? ? c3");
-                    var deRef = peImageBuffer.DerefOffset(possibleGetType);
+            //    while (foundGetType == false)
+            //    {
+            //        possibleGetType = peImageBuffer.FindPattern(start, "48 8D 05 ? ? ? ? c3");
+            //        var deRef = peImageBuffer.DerefOffset(possibleGetType);
 
-                    if (start >= remoteProcess.ImageSize)
-                    {
-                        break;
-                    }
+            //        if (start >= remoteProcess.ImageSize)
+            //        {
+            //            break;
+            //        }
 
-                    if (deRef != ThisTypeInfo.ToInt64())
-                    {
-                        start = possibleGetType - remoteProcess.ImageBase.ToInt64() + 8;
-                    }
-                    else
-                    {
-                        foundGetType = true;
-                    }
+            //        if (deRef != ThisTypeInfo.ToInt64())
+            //        {
+            //            start = possibleGetType - remoteProcess.ImageBase.ToInt64() + 8;
+            //        }
+            //        else
+            //        {
+            //            foundGetType = true;
+            //        }
 
-                    if ((start >= remoteProcess.ImageSize) || (start < 0))
-                    {
-                        VTable = IntPtr.Zero;
-                        break;
-                    }
-                }
+            //        if ((start >= remoteProcess.ImageSize) || (start < 0))
+            //        {
+            //            VTable = IntPtr.Zero;
+            //            break;
+            //        }
+            //    }
 
-                // look for pointer to the GetType we found
-                if (foundGetType)
-                {
-                    GetTypeFunction = (IntPtr)possibleGetType;
-                    VTable = (IntPtr)peImageBuffer.FindPattern(start, peImageBuffer.AddressToSig(possibleGetType));
-                }
-            }
+            //    // look for pointer to the GetType we found
+            //    if (foundGetType)
+            //    {
+            //        GetTypeFunction = (IntPtr)possibleGetType;
+            //        VTable = (IntPtr)peImageBuffer.FindPattern(start, peImageBuffer.AddressToSig(possibleGetType));
+            //    }
+            //}
 
         }
     }

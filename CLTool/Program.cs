@@ -4,6 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+/// <summary>
+///
+/// </summary>
+
 namespace SWBF2Tool
 {
     class Program
@@ -83,7 +87,7 @@ namespace SWBF2Tool
             List<SDKValueTypeInfo> structList = new List<SDKValueTypeInfo>();
             List<SDKClassInfo> classList = new List<SDKClassInfo>();
 
-            bool forIDA = false;    // set true to adjust output for IDA import (Array<> becomes pointer to type)
+            //bool forIDA = false;    // set true to adjust output for IDA import (Array<> becomes pointer to type)
 
             remoteProcess.OpenProcessMemory();
 
@@ -101,6 +105,11 @@ namespace SWBF2Tool
 
             Console.WriteLine("Processing...");
             var count = 1;
+
+            // testing in reclass
+            var classcount = 1;
+            var structcount = 1;
+            var enumcount = 1;
 
             var tasks = new List<Task>();
             var tasksCount = 0;
@@ -127,36 +136,45 @@ namespace SWBF2Tool
                     case BasicTypesEnum.kTypeCode_Enum:
                         {
                             enumList.Add(new SDKEnumFieldInfo(next, remoteProcess));
+                            ++enumcount;
                         }
                         break;
                     case BasicTypesEnum.kTypeCode_ValueType:
                         {
                             structList.Add(new SDKValueTypeInfo(next, remoteProcess));
+                            ++structcount;
                         }
                         break;
                     case BasicTypesEnum.kTypeCode_Class:
                         {
-                            //classList.Add(new SDKClassInfo(next, remoteProcess, peImageBuffer));
+                            classList.Add(new SDKClassInfo(next, remoteProcess, peImageBuffer));
 
 
-                            if (tasksCount == Environment.ProcessorCount)
-                            {
-                                Task.WaitAll(tasks.ToArray());
-                                tasksCount = 0;
-                            }
+                            //if (tasksCount == Environment.ProcessorCount)
+                            //{
+                            //    Task.WaitAll(tasks.ToArray());
+                            //    tasksCount = 0;
+                            //}
 
-                            // experimental multitasking of the classes to speed up finding vtables
-                            thisNext = next;
+                            //// experimental multitasking of the classes to speed up finding vtables
+                            //thisNext = next;
 
-                            tasks.Add(
-                                Task.Run(() =>
-                                {
-                                    var cInfo = new SDKClassInfo(thisNext, remoteProcess, peImageBuffer);
-                                    classList.Add(cInfo);
-                                }
-                                ));
+                            //tasks.Add(
+                            //    Task.Run(() =>
+                            //    {
+                            //        var cInfo = new SDKClassInfo(thisNext, remoteProcess, peImageBuffer);
+                            //        classList.Add(cInfo);
+                            //    }
+                            //    ));
 
-                            ++tasksCount;
+                            //++tasksCount;
+
+                            ++classcount;
+                        }
+                        break;
+                    case BasicTypesEnum.kTypeCode_BasicTypeCount:
+                        {
+                            Console.WriteLine($"{typeInfo.Name}");
                         }
                         break;
                     default:
@@ -165,256 +183,382 @@ namespace SWBF2Tool
 
                 next = typeInfo.Next;
 
-                count++;
+                ++count;
             }
 
             Task.WaitAll(tasks.ToArray());
 
-            var enumLines = new List<string>();
-            foreach (SDKEnumFieldInfo enumInfo in enumList)
-            {
-                enumLines.Add("////////////////////////////////////////");
-                enumLines.Add($"// Runtime Id : {enumInfo.RuntimeId}");
-                enumLines.Add($"// TypeInfo : 0x{enumInfo.ThisTypeInfo.ToString("X9")}");
+            ProcessHeaders.CreateHeaders(ref enumList, ref structList, ref classList);
 
-                enumLines.Add($"enum {enumInfo.Name}");
+//            var enumLines = new List<string>();
 
-                enumLines.Add("{");
+//            if (!forIDA)
+//            {
+//                enumLines.Add("#pragma once");
+//                enumLines.Add("");
+//                enumLines.Add("namespace fb");
+//                enumLines.Add("{");
+//            }
 
-                for (int i = 0; i < enumInfo.FieldCount; i++)
-                {
-                    string end = ",";
-                    if (i == enumInfo.FieldCount - 1)
-                    {
-                        end = "";
-                    }
+//            foreach (SDKEnumFieldInfo enumInfo in enumList)
+//            {
+//                enumLines.Add("////////////////////////////////////////");
+//                enumLines.Add($"// Runtime Id : {enumInfo.RuntimeId}");
+//                enumLines.Add($"// TypeInfo : 0x{enumInfo.ThisTypeInfo.ToString("X9")}");
 
-                    // fix some small issues related to having all the enums in the same file
-                    var fieldName = enumInfo.Fields.ElementAt(i).fieldName;
-                    if ((enumInfo.Name == "CutsceneActorType") || (enumInfo.Name == "DSJetpackMovementMode") || (enumInfo.Name == "AIPathLinkDirection"))
-                    {
-                        fieldName = $"{fieldName}_";
-                    }
+//                enumLines.Add($"enum {enumInfo.Name}");
 
-                    enumLines.Add($"    {fieldName}{end} //0x{i.ToString("X4")}");
-                }
+//                enumLines.Add("{");
 
-                enumLines.Add("};");
-                enumLines.Add("");
-            }
+//                for (int i = 0; i < enumInfo.FieldCount; i++)
+//                {
+//                    string end = ",";
+//                    if (i == enumInfo.FieldCount - 1)
+//                    {
+//                        end = "";
+//                    }
 
-            // sort structs for dependencies
-            int infoCount = 0;
-            while (infoCount < structList.Count)
-            {
-                var item = structList.ElementAt(infoCount);
+//                    // fix some small issues related to having all the enums in the same file
+//                    var fieldName = enumInfo.Fields.ElementAt(i).fieldName;
+//                    if ((enumInfo.Name == "CutsceneActorType") || (enumInfo.Name == "DSJetpackMovementMode") || (enumInfo.Name == "AIPathLinkDirection"))
+//                    {
+//                        fieldName = $"{fieldName}_";
+//                    }
 
-                foreach (SDKFieldEntry field in item.Fields)
-                {
-                    var fieldIndex = 0;
-                    var fieldTypeName = field.fieldType;
+//                    enumLines.Add($"    {fieldName}{end} //0x{i.ToString("X4")}");
+//                }
 
-                    if (fieldTypeName.Contains("-Array"))
-                    {
-                        fieldTypeName = field.fieldType.Substring(0, field.fieldType.Length - 6);
-                    }
+//                enumLines.Add("};");
+//                enumLines.Add("");
+//            }
 
-                    if ((field.fieldBasicType == BasicTypesEnum.kTypeCode_ValueType)
-                        || (field.fieldBasicType == BasicTypesEnum.kTypeCode_Array))
-                    {
-                        foreach (SDKValueTypeInfo fieldInfo in structList)
-                        {
-                            if (fieldInfo.Name == fieldTypeName)
-                            {
-                                fieldIndex = structList.IndexOf(fieldInfo);
-                            }
-                        }
+//            if (!forIDA)
+//            {
+//                enumLines.Add("}");
+//            }
 
-                        if (fieldIndex != 0)
-                        {
-                            var itemIndex = structList.IndexOf(item);
+//            // sort structs for dependencies
+//            int infoCount = 0;
+//            while (infoCount < structList.Count)
+//            {
+//                var item = structList.ElementAt(infoCount);
 
-                            // if we find the field item lower than the owning type, drop the owning type below it
-                            if (fieldIndex > itemIndex)
-                            {
-                                var tempInfo = structList.ElementAt(itemIndex);
-                                structList.RemoveAt(itemIndex);
-                                structList.Insert(fieldIndex, tempInfo);
+//                foreach (SDKFieldEntry field in item.Fields)
+//                {
+//                    var fieldIndex = 0;
+//                    var fieldTypeName = field.fieldType;
 
-                                // start the list again
-                                infoCount = 0;
-                                break;
-                            }
-                        }
-                    }
-                }
+//                    if (fieldTypeName.Contains("-Array"))
+//                    {
+//                        fieldTypeName = field.fieldType.Substring(0, field.fieldType.Length - 6);
+//                    }
 
-                ++infoCount;
-            }
+//                    if ((field.fieldBasicType == BasicTypesEnum.kTypeCode_ValueType)
+//                        || (field.fieldBasicType == BasicTypesEnum.kTypeCode_Array))
+//                    {
+//                        foreach (SDKValueTypeInfo fieldInfo in structList)
+//                        {
+//                            if (fieldInfo.Name == fieldTypeName)
+//                            {
+//                                fieldIndex = structList.IndexOf(fieldInfo);
+//                            }
+//                        }
 
-            var structLines = new List<string>();
-            foreach (SDKValueTypeInfo structInfo in structList)
-            {
-                structLines.Add("////////////////////////////////////////");
-                structLines.Add($"// Runtime Id : {structInfo.RuntimeId}");
-                structLines.Add($"// TypeInfo : 0x{structInfo.ThisTypeInfo.ToString("X9")}");
+//                        if (fieldIndex != 0)
+//                        {
+//                            var itemIndex = structList.IndexOf(item);
 
-                structLines.Add($"struct {structInfo.Name}");
+//                            // if we find the field item lower than the owning type, drop the owning type below it
+//                            if (fieldIndex > itemIndex)
+//                            {
+//                                var tempInfo = structList.ElementAt(itemIndex);
+//                                structList.RemoveAt(itemIndex);
+//                                structList.Insert(fieldIndex, tempInfo);
 
-                structLines.Add("{");
+//                                // start the list again
+//                                infoCount = 0;
+//                                break;
+//                            }
+//                        }
+//                    }
+//                }
 
-                for (int i = 0; i < structInfo.FieldCount; i++)
-                {
-                    var fieldType = structInfo.Fields.ElementAt(i).fieldType;
-                    var postfix = "";
+//                ++infoCount;
+//            }
 
-                    if (fieldType.Contains("-Array"))
-                    {
-                        fieldType = fieldType.Substring(0, fieldType.Length - 6);
-                    }
+//            var structLines = new List<string>();
 
-                    fieldType = FixTypeName(fieldType);
+//            if (!forIDA)
+//            {
+//                structLines.Add("#pragma once");
+//                structLines.Add("");
+//                structLines.Add("namespace fb");
+//                structLines.Add("{");
+//            }
 
-                    if ((structInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Class) && (fieldType != "float"))
-                    {
-                        postfix = "*";
-                    }
+//            foreach (SDKValueTypeInfo structInfo in structList)
+//            {
+//                structLines.Add("////////////////////////////////////////");
+//                structLines.Add($"// Runtime Id : {structInfo.RuntimeId}");
+//                structLines.Add($"// TypeInfo : 0x{structInfo.ThisTypeInfo.ToString("X9")}");
 
-                    if (structInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Array)
-                    {
-                        if (forIDA)
-                        {
-                            postfix = "*";
-                        }
-                        else
-                        {
-                            fieldType = $"Array<{fieldType}>";
-                        }
-                    }
+//                structLines.Add($"struct {structInfo.Name}");
 
-                    structLines.Add($"    {fieldType}{postfix} {structInfo.Fields.ElementAt(i).fieldName}; //0x{structInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
-                }
+//                structLines.Add("{");
 
-                structLines.Add("};");
-                structLines.Add("");
-            }
+//                for (int i = 0; i < structInfo.FieldCount; i++)
+//                {
+//                    var fieldType = structInfo.Fields.ElementAt(i).fieldType;
+//                    var postfix = "";
 
-            // sort by classid
-            classList = classList.OrderBy(x => x.ClassId).ToList();
+//                    if (fieldType.Contains("-Array"))
+//                    {
+//                        fieldType = fieldType.Substring(0, fieldType.Length - 6);
+//                    }
 
-            var nameLines = new List<string>
-            {
-                "from idautils import *",
-                "from idc import *",
-                "from idaapi import *",
-                "",
-                "def MakeNames():",
-                "    startEa = SegByBase(SegByName(\"HEADER\"))",
-                "    imageend = 0",
-                "",
-                "    for ea in Segments():",
-                "        imageend = SegEnd(ea)",
-                ""
-            };
-            var classLines = new List<string>();
+//                    fieldType = FixTypeName(fieldType);
 
-            var declarationLines = new List<string>();
+//                    if ((structInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Class) && (fieldType != "float"))
+//                    {
+//                        postfix = "*";
+//                    }
 
-            foreach (SDKClassInfo classInfo in classList)
-            {
-                classLines.Add("////////////////////////////////////////");
-                classLines.Add($"// Class Id : {classInfo.ClassId}");
-                classLines.Add($"// Runtime Id : {classInfo.RuntimeId}");
-                classLines.Add($"// TypeInfo : 0x{classInfo.ThisTypeInfo.ToString("X9")}");
-                classLines.Add($"// Default Instance : 0x{classInfo.DefaultInstance.ToString("X9")}");
-                classLines.Add($"// Vtable : 0x{classInfo.VTable.ToString("X9")}");
+//                    if (structInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Array)
+//                    {
+//                        if (forIDA)
+//                        {
+//                            postfix = "*";
+//                        }
+//                        else
+//                        {
+//                            fieldType = $"Array<{fieldType}>";
+//                        }
+//                    }
 
-                classLines.Add($"#ifndef _{classInfo.Name}_");
-                classLines.Add($"#define _{classInfo.Name}_");
+//                    structLines.Add($"    {fieldType}{postfix} {structInfo.Fields.ElementAt(i).fieldName}; //0x{structInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
+//                }
 
-                if ((classInfo.ParentClassName != classInfo.Name) && (classInfo.ParentClassName != ""))
-                {
-                    classLines.Add($"class {classInfo.Name} : {classInfo.ParentClassName}");
-                }
-                else
-                {
-                    classLines.Add($"class {classInfo.Name}");
-                }
+//                structLines.Add("};");
+//                structLines.Add("");
+//            }
 
-                classLines.Add("{");
+//            if (!forIDA)
+//            {
+//                structLines.Add("}");
+//            }
 
-                if (classInfo.FieldCount > 0)
-                {
-                    classLines.Add("public:");
-                }
+//            // sort by classid
+//            classList = classList.OrderBy(x => x.ClassId).ToList();
 
-                for (int i = 0; i < classInfo.FieldCount; i++)
-                {
-                    var fieldType = classInfo.Fields.ElementAt(i).fieldType;
-                    var postfix = "";
+//            var nameLines = new List<string>
+//            {
+//                "from idautils import *",
+//                "from idc import *",
+//                "from idaapi import *",
+//                "",
+//                "def MakeNames():",
+//                "    startEa = SegByBase(SegByName(\"HEADER\"))",
+//                "    imageend = 0",
+//                "",
+//                "    for ea in Segments():",
+//                "        imageend = SegEnd(ea)",
+//                ""
+//            };
+//            var classLines = new List<string>();
 
-                    if (fieldType.Contains("-Array"))
-                    {
-                        fieldType = fieldType.Substring(0, fieldType.Length - 6);
-                    }
+//            if (!forIDA)
+//            {
+//                classLines.Add("#pragma once");
+//                classLines.Add("");
+//                classLines.Add("namespace fb");
+//                classLines.Add("{");
+//            }
 
-                    fieldType = FixTypeName(fieldType);
+//            var declarationLines = new List<string>();
 
-                    if ((classInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Class) && (fieldType != "float"))
-                    {
-                        postfix = "*";
-                    }
+//            if (!forIDA)
+//            {
+//                declarationLines.Add("#pragma once");
+//                declarationLines.Add("");
+//                declarationLines.Add("namespace fb");
+//                declarationLines.Add("{");
+//            }
 
-                    if (classInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Array)
-                    {
-                        if (forIDA)
-                        {
-                            postfix = "*";
-                        }
-                        else
-                        {
-                            fieldType = $"Array<{fieldType}>";
-                        }
-                    }
+//            foreach (SDKClassInfo classInfo in classList)
+//            {
+//                classLines.Add("////////////////////////////////////////");
+//                classLines.Add($"// Class Id : {classInfo.ClassId}");
+//                classLines.Add($"// Runtime Id : {classInfo.RuntimeId}");
+//                classLines.Add($"// TypeInfo : 0x{classInfo.ThisTypeInfo.ToString("X9")}");
+//                classLines.Add($"// Default Instance : 0x{classInfo.DefaultInstance.ToString("X9")}");
+//                classLines.Add($"// Vtable : 0x{classInfo.VTable.ToString("X9")}");
 
-                    classLines.Add($"    {fieldType}{postfix} {classInfo.Fields.ElementAt(i).fieldName}; //0x{classInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
-                }
+//                classLines.Add($"#ifndef _{classInfo.Name}_");
+//                classLines.Add($"#define _{classInfo.Name}_");
 
-                classLines.Add("};");
-                classLines.Add($"//0x{classInfo.TotalSize.ToString("X4")}");
+//                if ((classInfo.ParentClassName != classInfo.Name) && (classInfo.ParentClassName != ""))
+//                {
+//                    classLines.Add($"class {classInfo.Name} : {classInfo.ParentClassName}");
+//                }
+//                else
+//                {
+//                    classLines.Add($"class {classInfo.Name}");
+//                }
 
-                classLines.Add($"#endif");
+//                classLines.Add("{");
 
-                classLines.Add("");
+//                if (classInfo.FieldCount > 0)
+//                {
+//                    classLines.Add("public:");
+//                }
 
-                declarationLines.Add($"class {classInfo.Name};");
+//                for (int i = 0; i < classInfo.FieldCount; i++)
+//                {
+//                    var fieldType = classInfo.Fields.ElementAt(i).fieldType;
+//                    var postfix = "";
 
-                // idapython stuff
-                /*
-                 * Python>MakeNames()
-14356C140: can't rename byte as 'PlayerAbilityWeaponInfoEntityData_vtbl' because this byte can't have a name (it is a tail byte).
-14356C178: can't rename byte as 'PlayerAbilityWeaponUpgradeInfoEntityData_vtbl' because this byte can't have a name (it is a tail byte).
-1413481DC: can't rename byte as 'ClientWheelComponent_vtbl' because this byte can't have a name (it is a tail byte).
-141948644: can't rename byte as 'ServerVehicleHealthComponent_vtbl' because this byte can't have a name (it is a tail byte).
-                 */
-                if (classInfo.GetTypeFunction != IntPtr.Zero)
-                {
-                    nameLines.Add($"    MakeName(0x{classInfo.GetTypeFunction.ToString("X9")}, \"{classInfo.Name}_GetType\")");
-                }
+//                    if (fieldType.Contains("-Array"))
+//                    {
+//                        fieldType = fieldType.Substring(0, fieldType.Length - 6);
+//                    }
 
-                if (classInfo.VTable != IntPtr.Zero)
-                {
-                    nameLines.Add($"    MakeName(0x{classInfo.VTable.ToString("X9")}, \"{classInfo.Name}_vtbl\")");
-                }
-            }
+//                    fieldType = FixTypeName(fieldType);
 
-            System.IO.File.WriteAllLines(@".\Enums.h", enumLines);
-            System.IO.File.WriteAllLines(@".\Structs.h", structLines);
-            System.IO.File.WriteAllLines(@".\Declarations.h", declarationLines);
-            System.IO.File.WriteAllLines(@".\Classes.h", classLines);
-            System.IO.File.WriteAllLines(@".\MakeNames.py", nameLines);
+//                    if ((classInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Class) && (fieldType != "float"))
+//                    {
+//                        postfix = "*";
+//                    }
+
+//                    if (classInfo.Fields.ElementAt(i).fieldBasicType == BasicTypesEnum.kTypeCode_Array)
+//                    {
+//                        if (forIDA)
+//                        {
+//                            postfix = "*";
+//                        }
+//                        else
+//                        {
+//                            fieldType = $"Array<{fieldType}>";
+//                        }
+//                    }
+
+//                    classLines.Add($"    {fieldType}{postfix} {classInfo.Fields.ElementAt(i).fieldName}; //0x{classInfo.Fields.ElementAt(i).fieldOffset.ToString("X4")}");
+//                }
+
+//                classLines.Add("};");
+//                classLines.Add($"//0x{classInfo.TotalSize.ToString("X4")}");
+
+//                classLines.Add($"#endif");
+
+//                classLines.Add("");
+
+//                declarationLines.Add($"class {classInfo.Name};");
+
+//                // idapython stuff
+//                /*
+//                 * Python>MakeNames()
+//14356C140: can't rename byte as 'PlayerAbilityWeaponInfoEntityData_vtbl' because this byte can't have a name (it is a tail byte).
+//14356C178: can't rename byte as 'PlayerAbilityWeaponUpgradeInfoEntityData_vtbl' because this byte can't have a name (it is a tail byte).
+//1413481DC: can't rename byte as 'ClientWheelComponent_vtbl' because this byte can't have a name (it is a tail byte).
+//141948644: can't rename byte as 'ServerVehicleHealthComponent_vtbl' because this byte can't have a name (it is a tail byte).
+//                 */
+//                if (classInfo.GetTypeFunction != IntPtr.Zero)
+//                {
+//                    nameLines.Add($"    MakeName(0x{classInfo.GetTypeFunction.ToString("X9")}, \"{classInfo.Name}_GetType\")");
+//                }
+
+//                if (classInfo.VTable != IntPtr.Zero)
+//                {
+//                    nameLines.Add($"    MakeName(0x{classInfo.VTable.ToString("X9")}, \"{classInfo.Name}_vtbl\")");
+//                }
+//            }
+
+//            if (!forIDA)
+//            {
+//                classLines.Add("}");
+//            }
+
+//            if (!forIDA)
+//            {
+//                declarationLines.Add("}");
+//            }
+
+//            System.IO.File.WriteAllLines(@".\Enums.h", enumLines);
+//            System.IO.File.WriteAllLines(@".\Structs.h", structLines);
+//            System.IO.File.WriteAllLines(@".\Declarations.h", declarationLines);
+//            System.IO.File.WriteAllLines(@".\Classes.h", classLines);
+//            System.IO.File.WriteAllLines(@".\MakeNames.py", nameLines);
+
+//            // c++ import header
+//            var cppImportLines = new List<string>
+//            {
+//                "#pragma once",
+//                "",
+//                "namespace fb {",
+//                "    struct Guid",
+//                "    {",
+//                "        unsigned long	m_Data1;	//0x0000",
+//                "        unsigned short	m_Data2;	//0x0004",
+//                "        unsigned short	m_Data3;	//0x0006",
+//                "        unsigned char	m_Data4[8];	//0x0008",
+//                "    };",
+//                "    //Size=0x0010",
+//                "",
+//                "    typedef __m128 BoxedValueRef;",
+//                "    typedef uint64_t ResourceRef;",
+//                "    typedef uint64_t TypeRef;",
+//                "    typedef uint64_t FileRef;",
+//                "",
+//                "    typedef struct",
+//                "    {",
+//                "    	char pad[0x14];",
+//                "    } SHA1;",
+//                "    //Size=0x0014",
+//                "",
+//                "    template <typename T>",
+//                "    class Array",
+//                "    {",
+//                "    private:",
+//                "    	 T* m_firstElement;",
+//                "",
+//                "    public:",
+//                "        T At(INT nIndex)",
+//                "        {",
+//                "            if (m_firstElement == NULL)",
+//                "                return *(T*)((UINT64)NULL);",
+//                "",
+//                "            return *(T*)((UINT64)m_firstElement + (nIndex * sizeof(T)));",
+//                "         };",
+//                "",
+//                "         T operator [](INT index) { return At(index); }",
+//                "    };",
+//                "",
+//                "    #include \"Declarations.h\"",
+//                "    #include \"Enums.h\"",
+//                "    #include \"Structs.h\"",
+//                "    #include \"Classes.h\"",
+//                "",
+//            };
+
+//            // IDA import header
+//            var idaImportLines = new List<string>
+//            {
+//                "from idautils import *",
+//                "from idc import *",
+//                "from idaapi import *",
+//                "",
+//                "def MakeNames():",
+//                "    startEa = SegByBase(SegByName(\"HEADER\"))",
+//                "    imageend = 0",
+//                "",
+//                "    for ea in Segments():",
+//                "        imageend = SegEnd(ea)",
+//                ""
+//            };
 
             Console.WriteLine($"Found {count} TypeInfo entries.");
+            Console.WriteLine($"Found {classcount} ClassInfo entries.");
+            Console.WriteLine($"Found {structcount} ValueTypeInfo entries.");
+            Console.WriteLine($"Found {enumcount} EnumFieldInfo entries.");
 
             Console.WriteLine("Done. Press a key to quit.");
 

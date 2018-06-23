@@ -28,7 +28,7 @@ namespace SWBF2Tool
 
             Name = $"{remoteProcess.ReadString(typeInfoData.m_Name, 255)}";
             ThisTypeInfo = address;
-            Type = typeInfoData.GetEntryType();
+            Type = typeInfoData.GetNewEntryType();
             Flags = typeInfoData.m_Flags;
             Alignment = typeInfoData.m_Alignment;
             TotalSize = typeInfoData.m_TotalSize;

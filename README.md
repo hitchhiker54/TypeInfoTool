@@ -4,7 +4,7 @@ Disclaimer : The author takes no responsibility for actions taken against a game
 
 WIP
 
-Basic rewrite of Reunion's code, specifically for SWBF 2 (2017).
+Full rewrite in C# of Reunion's bf4 sdk code, specifically for SWBF 2 (2017).
 
 Requires about 50mins to run when calling GetVtable() in SDKClassInfo, 2 mins if not (on my machine). Should scale with no. of logical cores.
 
